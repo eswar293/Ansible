@@ -1,0 +1,48 @@
+---
+- name: Check and Install NGINX on the servers
+  hosts: droplets
+  become: yes
+  gather_facts: no
+
+  tasks:
+  # Task 1: CHeck if NGINX is installed or not in servers
+    - name: Check NGINX
+      shell: dpkg -s nginx
+      register: nginx_check
+      failed_when: false
+
+  # Task 2: Checking the dpkg status
+    - name: show dpkg status in servers
+      debug:
+        msg: >
+          {% if nginx_check.rc == 0 %}
+            NGINX is installed in this server.
+          {% else %}
+            NGINX is not installed in this server.
+          {% endif %}
+  
+  # Task 3: Install NGINX only if not installed
+    - name: Install NGINX if not present
+      apt:
+        update_cache: yes
+        name: nginx
+        state: present
+    
+    - name: start and enable the service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - debug:
+        msg: "Installed NGINX"
+      when: nginx_check.rc != 0
+  
+  # Task 4: If Installed show skip message
+    - name: Show SKIP message if NGINX is installed
+      debug:
+        msg: "Skipping NGINX installation in this server"
+      when: nginx_check.rc == 0
+  
+        
+            

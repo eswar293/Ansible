@@ -1,0 +1,100 @@
+---
+#- name: configure nginx on servers
+#  hosts: droplets
+#  become: yes
+#  gather_facts: no
+#
+#  tasks:
+#
+#    - name: install nginx on droplets servers
+#      apt:
+#        update_cache: yes
+#        name: nginx
+#        state: present
+#        
+#
+#    - name: start nginx service
+#      service:
+#        name: nginx
+#        state: started
+#
+#    - name: check if the service is installed or not
+#      package_facts:
+#        manager: auto
+#
+#    - name: show result
+#      debug:
+#        msg: "nginx is installed"
+#      when: "'nginx' in ansible_facts.packages"
+#
+#
+#
+#- name: Check and install NGINX only if not installed
+#  hosts: all
+#  become: yes
+#
+#  tasks:
+#    - name: Check if nginx is installed
+#      command: dpkg -s nginx
+#      register: nginx_check
+#      ignore_errors: yes
+#
+#    - name: Print message if nginx is already installed
+#      debug:
+#        msg: "NGINX is already installed. Skipping installation."
+#      when: nginx_check.rc == 0
+#
+#    - name: Install nginx if not installed
+#      apt:
+#        name: nginx
+#        state: present
+#        update_cache: yes
+#      when: nginx_check.rc != 0
+
+
+- name: Check, show status, and install NGINX
+  hosts: droplets
+  become: yes
+  gather_facts: no
+
+  tasks:
+
+  # Step 1: Check if nginx package is installed
+    - name: Check if nginx is installed
+      command: dpkg -s nginx
+      register: nginx_check
+      failed_when: false
+    #  ignore_errors: yes
+
+  # Step 2: Show status (installed or not)
+    - name: Show nginx installation status
+      debug:
+        msg: >
+          {% if nginx_check.rc == 0 %}
+            NGINX is INSTALLED on this machine.
+          {% else %}
+            NGINX is NOT installed on this machine.
+          {% endif %}
+
+  # Step 3: Install nginx ONLY if not installed
+    - name: Install nginx if not installed
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+    - debug:
+        msg: "NGINX is installed"
+      when: nginx_check.rc != 0
+
+  # Step 4: If installed, show skip message
+    - name: Skip installation message
+      debug:
+        msg: "NGINX is already installed, so installation is being skipped."
+      when: nginx_check.rc == 0
+
+  # Step 5: start the NGINX service and enable it
+    - name: start nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes

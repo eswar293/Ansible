@@ -1,0 +1,13 @@
+---
+- name: Install Docker and Docker compose and run containers in the server
+  hosts: awsec2
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Install Docker
+      yum:
+        name: docker
+        state: present
+  
+        

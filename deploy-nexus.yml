@@ -1,0 +1,102 @@
+---
+- name: Deploy and configure Nexus
+  hosts: droplets
+  become: yes
+  gather_facts: no
+
+  tasks:
+    # -----------------------
+    # Install prerequisites
+    # -----------------------
+    - name: Update apt repo cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Java 8 and net-tools
+      apt:
+        pkg:
+          - openjdk-8-jre-headless
+          - net-tools
+
+    # -----------------------
+    # Download Nexus only if file does not exist
+    # -----------------------
+    - name: Check if tar already exists
+      stat:
+        path: /opt/nexus*.tar.gz
+      register: tar_file
+
+    - name: Download Nexus .tar.gz
+      get_url:
+        url: https://download.sonatype.com/nexus/3/nexus-3.86.2-01-linux-x86_64.tar.gz
+        dest: /opt/nexus.tar.gz
+      when: not tar_file.stat.exists
+
+    # -----------------------
+    # Extract only once
+    # -----------------------
+    - name: Extract Nexus
+      unarchive:
+        src: /opt/nexus.tar.gz
+        dest: /opt
+        remote_src: yes
+        creates: /opt/nexus-3.86.2-01
+
+    # -----------------------
+    # Rename directory only once
+    # -----------------------
+    - name: Check if /opt/nexus already exists
+      stat:
+        path: /opt/nexus
+      register: nexus_dir
+
+    - name: Find extracted Nexus directory
+      find:
+        path: /opt
+        pattern: "nexus-*"
+        file_type: directory
+      register: find_result
+      when: not nexus_dir.stat.exists
+
+    - name: Rename Nexus directory to /opt/nexus
+      command: mv {{ find_result.files[0].path }} /opt/nexus
+      when: not nexus_dir.stat.exists
+
+    # -----------------------
+    # Remove tar after extraction (optional)
+    # -----------------------
+    - name: Remove tar file after extraction
+      file:
+        path: /opt/nexus.tar.gz
+        state: absent
+
+    # -----------------------
+    # Create nexus user & set permissions
+    # -----------------------
+    - name: Create nexus group
+      group:
+        name: nexus
+        state: present
+
+    - name: Create nexus user
+      user:
+        name: nexus
+        group: nexus
+        comment: Nexus application user
+
+    - name: Set ownership for Nexus directory
+      file:
+        path: /opt/nexus
+        owner: nexus
+        group: nexus
+        state: directory
+        recurse: yes
+
+    - name: Set ownership for sonatype-work
+      file:
+        path: /opt/sonatype-work
+        owner: nexus
+        group: nexus
+        state: directory
+        recurse: yes

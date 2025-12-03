@@ -1,0 +1,79 @@
+
+
+---
+- name: Install node and npm to run the node application
+  hosts: droplets
+  become: yes
+  gather_facts: no
+  
+  tasks:
+    - name: update cache in the server
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+
+    - name: Install node and npm
+      apt:
+        pkg:
+          - nodejs
+          - npm
+
+- name: create user for node app
+  hosts: droplets
+  become: yes
+  gather_facts: no
+  vars_files:
+    node-vars.yml
+
+  tasks:
+    - name: create linux user
+      user:
+        name: "{{linux_name}}"
+        comment: user for node app
+        group: admin
+      register: user_creation_result
+    - debug: msg={{user_creation_result.state}}
+
+- name: Deploy NodeJs app in server
+  hosts: droplets
+  become: yes
+  gather_facts: no
+  become_user: "{{linux_name}}"
+  vars_files:
+    node-vars.yml
+  
+  tasks:
+    - name: unpack nodejs folder to server
+      unarchive:
+        src: "{{location}}/nodejs-app-{{version}}.tgz"
+        dest: "{{user_home_dir}}"
+
+    - name: Install dependencies
+      npm:
+        path: "{{user_home_dir}}/package"
+
+    - name: start the application
+      command:
+        chdir: "{{user_home_dir}}/package/app"
+        cmd: node server
+      async: 1000
+      poll: 0
+
+  ####  - name: check if Node app process is running
+  ##    shell: pgrep -f "node server"
+  ##    register: node_process
+  ##    failed_when: false
+##
+  ##  - debug:
+  ##      msg: "Node app is running"
+  ##    when: node_process.rc == 0
+##
+  ##  - debug:
+  ##      msg: "Node app is NOT running"
+  ##    when: node_process.rc != 0 
+
+    - name: Ensure app is running
+      shell: ps aux |grep -w node |grep -v root
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
