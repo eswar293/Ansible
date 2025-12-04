@@ -2,3 +2,4 @@ location: /Users/eswarkumar/ansible/nodejs-app
 version: 1.0.0
 user_home_dir: /home/node
 linux_name: node
+password: Mspacman@1241
