@@ -1,6 +1,6 @@
 ---
 - name: Install Docker and Docker compose and run containers in the server
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
   become: yes
 
@@ -17,7 +17,7 @@
         enabled: yes
 
 - name: install docker-compose in the server
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
   
   tasks: 
@@ -30,12 +30,12 @@
       register: arch_check
     - name: download the docker-compose 
       get_url: 
-        url: "https://github.com/docker/compose/releases/download/v5.0.0/docker-compose-linux-{{ arch_check.stdout}}"
+        url: "https://github.com/docker/compose/releases/download/v5.0.0/docker-compose-linux-{{ arch_check.stdout }}"
         dest: ~/.docker/cli-plugins/docker-compose
         mode: +x
         
 - name: add docker group to ec2-user
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
   become: yes
 
@@ -49,7 +49,7 @@
       meta: reset_connection
 
 - name: pull the radis image
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
 
   tasks: 
@@ -58,7 +58,7 @@
         name: redis
         source: pull
 - name: copy docker compose file from local to server
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
 
   tasks:
@@ -68,7 +68,7 @@
         dest: ~/docker-compose.yaml
 
 - name: run the docker image
-  hosts: awsec2
+  hosts: tag_Name_dev_server
   gather_facts: no
   vars_files:
     - node-vars.yml
